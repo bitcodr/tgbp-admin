@@ -149,8 +149,7 @@ func (service *BotService) channelFinalStage(app *config.App, bot *tb.Bot, relat
 	defer results.Close()
 	if err == nil {
 		var channelTableData []*models.TempSetupFlow
-		var companyTableData []*models.TempSetupFlow
-		var channelsEmailSuffixes []*models.TempSetupFlow
+		var companyChannelTableData []*models.TempSetupFlow
 		var channelsSettings []*models.TempSetupFlow
 		for results.Next() {
 			tempSetupFlow := new(models.TempSetupFlow)
@@ -160,14 +159,12 @@ func (service *BotService) channelFinalStage(app *config.App, bot *tb.Bot, relat
 				return
 			}
 			switch tempSetupFlow.TableName {
-			case config.LangConfig.GetString("GENERAL.COMPANIES"):
-				companyTableData = append(companyTableData, tempSetupFlow)
+			case config.LangConfig.GetString("GENERAL.COMPANIES_CHANNELS"):
+				companyChannelTableData = append(companyChannelTableData, tempSetupFlow)
 			case config.LangConfig.GetString("GENERAL.CHANNELS"):
 				channelTableData = append(channelTableData, tempSetupFlow)
 			case config.LangConfig.GetString("GENERAL.CHANNELS_SETTINGS"):
 				channelsSettings = append(channelsSettings, tempSetupFlow)
-			case config.LangConfig.GetString("GENERAL.COMPANY_EMAIL_SUFFIXES"):
-				channelsEmailSuffixes = append(channelsEmailSuffixes, tempSetupFlow)
 			}
 		}
 		transaction, err := db.Begin()
@@ -176,7 +173,7 @@ func (service *BotService) channelFinalStage(app *config.App, bot *tb.Bot, relat
 			return
 		}
 		//insert company
-		service.insertChannelFinalStateData(app, bot, userID, transaction, channelTableData, companyTableData, channelsEmailSuffixes, channelsSettings, db)
+		service.insertChannelFinalStateData(app, bot, userID, transaction, channelTableData, companyChannelTableData, channelsSettings, db)
 		//update state of temp setup data
 		_, err = transaction.Exec("update `temp_setup_flow` set `status`='INACTIVE' where status='ACTIVE' and relation=? and `userID`=?", config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY_CHANNEL")+"_"+strconv.Itoa(userID)+"_"+relationDate, userID)
 		if err != nil {
@@ -194,8 +191,8 @@ func (service *BotService) channelFinalStage(app *config.App, bot *tb.Bot, relat
 	}
 }
 
-func (service *BotService) insertChannelFinalStateData(app *config.App, bot *tb.Bot, userID int, transaction *sql.Tx, channelTableData, companyTableData, channelsEmailSuffixes, channelsSettings []*models.TempSetupFlow, db *sql.DB) {
-	if companyTableData == nil || channelsEmailSuffixes == nil || len(channelsEmailSuffixes) != 1 || channelTableData == nil || channelsSettings == nil {
+func (service *BotService) insertChannelFinalStateData(app *config.App, bot *tb.Bot, userID int, transaction *sql.Tx, channelTableData, companyChannelTableData, channelsSettings []*models.TempSetupFlow, db *sql.DB) {
+	if companyChannelTableData == nil || channelTableData == nil || channelsSettings == nil {
 		transaction.Rollback()
 		log.Println(config.LangConfig.GetString("MESSAGES.DATA_MUST_NOT_BE_NULL"))
 		return
@@ -203,7 +200,7 @@ func (service *BotService) insertChannelFinalStateData(app *config.App, bot *tb.
 
 	//insert company
 	var companyName string
-	for _, v := range companyTableData {
+	for _, v := range companyChannelTableData {
 		if v.ColumnName == config.LangConfig.GetString("GENERAL.COMPANY_NAME") {
 			companyName = v.Data
 		}
@@ -312,4 +309,6 @@ func (service *BotService) insertChannelFinalStateData(app *config.App, bot *tb.
 		log.Println(err)
 		return
 	}
+
+	//generate a link with bot url when verify join is required
 }

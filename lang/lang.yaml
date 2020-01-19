@@ -2,6 +2,7 @@ GENERAL:
   HOME: Home
   COMPANIES: companies
   CHANNELS: channels
+  COMPANIES_CHANNELS: companies_channels
   CHANNELS_SETTINGS: channels_settings
   COMPANY_EMAIL_SUFFIXES: companies_email_suffixes
   COMPANY_NAME: companyName
