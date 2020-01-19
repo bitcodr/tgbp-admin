@@ -97,6 +97,8 @@ MESSAGES:
   YOU_DO_NOT_HAVE_PREMISSION_TO_SEND_A_MESSAGE: "You should first confirm your company email for sending a message"
   DM_HISTORY: "DM history: You & "
   EMAIL_SUFFIX_EXIST: " email suffix exist for a company choose another one"
+  COMPANY_NOT_EXIST: "Selected company not registered"
+
 
 COMMANDS:
   ENABLE_CHAT: "/enable_anonymity_support"

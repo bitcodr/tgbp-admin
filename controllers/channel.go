@@ -211,27 +211,18 @@ func (service *BotService) insertChannelFinalStateData(app *config.App, bot *tb.
 	companyNewModel := new(models.Company)
 	var companyID int64
 	if err := db.QueryRow("SELECT id,companyName FROM `companies` where `companyName`=?", companyName).Scan(&companyNewModel.ID, &companyNewModel.CompanyName); err != nil {
-		insertCompany, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`createdAt`) VALUES(?,?)", companyName, app.CurrentTime)
-		if err != nil {
-			_ = transaction.Rollback()
-			log.Println(err)
-			return
-		}
-		companyID, err = insertCompany.LastInsertId()
-		if err != nil {
-			_ = transaction.Rollback()
-			log.Println(err)
-			return
-		}
+		_ = transaction.Rollback()
+		userModel := new(tb.User)
+		userModel.ID = userID
+		bot.Send(userModel, config.LangConfig.GetString("MESSAGES.COMPANY_NOT_EXIST"))
+		return
 	} else {
 		companyID = companyNewModel.ID
 	}
+
 	//insert channel
-	var channelModelField, manualChannelName, uniqueID, channelURL string
+	var manualChannelName, uniqueID, channelURL string
 	for _, v := range channelTableData {
-		if v.ColumnName == config.LangConfig.GetString("GENERAL.CHANNEL_MODEL") {
-			channelModelField = v.Data
-		}
 		if v.ColumnName == config.LangConfig.GetString("GENERAL.MANUAL_CHANNEL_NAME") {
 			manualChannelName = v.Data
 		}
@@ -248,7 +239,7 @@ func (service *BotService) insertChannelFinalStateData(app *config.App, bot *tb.
 		log.Println(err)
 		return
 	}
-	_, err := transaction.Exec("update `channels` set `manualChannelName`=?, `channelModel`=?, `channelURL`=? where `uniqueID`=?", manualChannelName, channelModelField, channelURL, uniqueID)
+	_, err := transaction.Exec("update `channels` set `manualChannelName`=?,  `channelURL`=? where `uniqueID`=?", manualChannelName, channelURL, uniqueID)
 	if err != nil {
 		transaction.Rollback()
 		log.Println(err)
@@ -277,27 +268,6 @@ func (service *BotService) insertChannelFinalStateData(app *config.App, bot *tb.
 		transaction.Rollback()
 		log.Println(err)
 		return
-	}
-
-	//insert channelsEmailSuffixes
-	emailSuffixed := channelsEmailSuffixes[0]
-	if strings.Contains(emailSuffixed.Data, ",") {
-		suffixes := strings.Split(emailSuffixed.Data, ",")
-		for _, suffix := range suffixes {
-			_, err := transaction.Exec("INSERT INTO `companies_email_suffixes` (`suffix`,`channelID`,`createdAt`) VALUES('" + suffix + "','" + strconv.FormatInt(channelModel.ID, 10) + "','" + app.CurrentTime + "')")
-			if err != nil {
-				transaction.Rollback()
-				log.Println(err)
-				return
-			}
-		}
-	} else {
-		_, err := transaction.Exec("INSERT INTO `companies_email_suffixes` (`suffix`,`channelID`,`createdAt`) VALUES('" + emailSuffixed.Data + "','" + strconv.FormatInt(channelModel.ID, 10) + "','" + app.CurrentTime + "')")
-		if err != nil {
-			_ = transaction.Rollback()
-			log.Println(err)
-			return
-		}
 	}
 
 	//insert channel settings
