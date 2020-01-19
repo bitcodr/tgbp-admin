@@ -21,33 +21,11 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 		switch {
 		case incomingMessage == config.LangConfig.GetString("GENERAL.HOME") || incomingMessage == config.LangConfig.GetString("COMMANDS.START"):
 			goto StartBotCallback
-		case strings.Contains(incomingMessage, config.LangConfig.GetString("STATE.ANSWER_TO_DM")+"_"):
-			goto SanedAnswerDM
-		case strings.Contains(incomingMessage, config.LangConfig.GetString("STATE.COMPOSE_MESSAGE")+"_"):
-			goto NewMessageGroupHandlerCallback
 		default:
 			goto CheckState
 		}
 
-	SanedAnswerDM:
-		if onCallbackEventsHandler(app, bot, c, &Event{
-			UserState:  config.LangConfig.GetString("STATE.ANSWER_TO_DM"),
-			Command:    config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_",
-			Controller: "SanedAnswerDM",
-		}) {
-			Init(app, bot, true)
-		}
-		goto END
 
-	NewMessageGroupHandlerCallback:
-		if onCallbackEventsHandler(app, bot, c, &Event{
-			UserState:  config.LangConfig.GetString("STATE.NEW_MESSAGE_TO_GROUP"),
-			Command:    config.LangConfig.GetString("STATE.COMPOSE_MESSAGE") + "_",
-			Controller: "NewMessageGroupHandlerCallback",
-		}) {
-			Init(app, bot, true)
-		}
-		goto END
 
 	StartBotCallback:
 		if onCallbackEventsHandler(app, bot, c, &Event{
@@ -67,8 +45,6 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 		switch lastState.State {
 		case config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY"):
 			goto SetUpCompanyByAdmin
-		case config.LangConfig.GetString("STATE.REGISTER_USER_WITH_EMAIL"):
-			goto RegisterUserWithemail
 		default:
 			bot.Send(c.Sender, "Your message "+c.Data+" is not being processed or sent to any individual, channel or group. Please use inline buttons or use the /home command.")
 			goto END
@@ -78,15 +54,6 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 		if inlineOnCallbackEventsHandler(app, bot, c, db, lastState, &Event{
 			UserState:  config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY"),
 			Controller: "SetUpCompanyByAdmin",
-		}) {
-			Init(app, bot, true)
-		}
-		goto END
-
-	RegisterUserWithemail:
-		if inlineOnCallbackEventsHandler(app, bot, c, db, lastState, &Event{
-			UserState:  config.LangConfig.GetString("STATE.REGISTER_USER_WITH_EMAIL"),
-			Controller: "RegisterUserWithemail",
 		}) {
 			Init(app, bot, true)
 		}

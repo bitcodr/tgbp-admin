@@ -50,13 +50,3 @@ func (service *BotService) StartBotCallback(app *config.App, bot *tb.Bot, callba
 	}
 	return false
 }
-
-func (service *BotService) AddAnonMessageToChannel(app *config.App, bot *tb.Bot, message *tb.Message, request *Event) bool {
-	db := app.DB()
-	defer db.Close()
-	if message.Sender != nil {
-		SaveUserLastState(db, app, bot, message.Text, message.Sender.ID, request.UserState)
-	}
-	bot.Send(message.Sender, config.LangConfig.GetString("MESSAGES.ALERT_FOR_ANON_MESSAGE"))
-	return true
-}

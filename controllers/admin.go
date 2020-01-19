@@ -310,3 +310,23 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 		return
 	}
 }
+
+func SaveUserLastState(db *sql.DB, app *config.App, bot *tb.Bot, data string, userDataID int, state string) {
+	userID := strconv.Itoa(userDataID)
+	insertedState, err := db.Query("INSERT INTO `users_last_state` (`userID`,`state`,`data`,`createdAt`) VALUES('" + userID + "','" + state + "','" + strings.TrimSpace(data) + "','" + app.CurrentTime + "')")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer insertedState.Close()
+}
+
+func GetUserLastState(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, user int) *models.UserLastState {
+	userLastState := new(models.UserLastState)
+	if err := db.QueryRow("SELECT `data`,`state`,`userID` from `users_last_state` where `userId`=? order by `id` DESC limit 1", user).Scan(&userLastState.Data, &userLastState.State, &userLastState.UserID); err != nil {
+		log.Println(err)
+		userLastState.Status = "INACTIVE"
+		return userLastState
+	}
+	return userLastState
+}

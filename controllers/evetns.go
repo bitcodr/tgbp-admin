@@ -18,7 +18,6 @@ func Init(app *config.App, bot *tb.Bot, state interface{}) {
 	if state != nil {
 		return
 	}
-	onActionEvents(app, bot)
 	onTextEvents(app, bot)
 	onCallbackEvents(app, bot)
 }
