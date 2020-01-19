@@ -25,8 +25,6 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 			goto CheckState
 		}
 
-
-
 	StartBotCallback:
 		if onCallbackEventsHandler(app, bot, c, &Event{
 			UserState:  config.LangConfig.GetString("STATE.HOME"),
@@ -45,6 +43,8 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 		switch lastState.State {
 		case config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY"):
 			goto SetUpCompanyByAdmin
+		case config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY_CHANNEL"):
+			goto SetUpChannelByAdmin
 		default:
 			bot.Send(c.Sender, "Your message "+c.Data+" is not being processed or sent to any individual, channel or group. Please use inline buttons or use the /home command.")
 			goto END
@@ -54,6 +54,15 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 		if inlineOnCallbackEventsHandler(app, bot, c, db, lastState, &Event{
 			UserState:  config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY"),
 			Controller: "SetUpCompanyByAdmin",
+		}) {
+			Init(app, bot, true)
+		}
+		goto END
+
+	SetUpChannelByAdmin:
+		if inlineOnCallbackEventsHandler(app, bot, c, db, lastState, &Event{
+			UserState:  config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY_CHANNEL"),
+			Controller: "SetUpChannelByAdmin",
 		}) {
 			Init(app, bot, true)
 		}
@@ -72,7 +81,7 @@ func onCallbackEventsHandler(app *config.App, bot *tb.Bot, c *tb.Callback, reque
 func inlineOnCallbackEventsHandler(app *config.App, bot *tb.Bot, c *tb.Callback, db *sql.DB, lastState *models.UserLastState, request *Event) bool {
 	var result bool
 	switch {
-	case request.Controller == "RegisterUserWithemail" || request.Controller == "SetUpCompanyByAdmin":
+	case request.Controller == "SetUpChannelByAdmin" || request.Controller == "SetUpCompanyByAdmin":
 		helpers.Invoke(new(BotService), &result, request.Controller, db, app, bot, c.Message, request, lastState, strings.TrimSpace(c.Data), c.Sender.ID)
 	default:
 		helpers.Invoke(new(BotService), &result, request.Controller, app, bot, c, request)

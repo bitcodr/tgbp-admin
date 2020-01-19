@@ -22,6 +22,8 @@ GENERAL:
 STATE:
   SETUP_VERIFIED_COMPANY: setup_verified_company_account
   DONE_SETUP_VERIFIED_COMPANY: done_setup_verified_company_account
+  SETUP_VERIFIED_COMPANY_CHANNEL: setup_verified_company_channel_account
+  DONE_SETUP_VERIFIED_COMPANY_CHANNEL: done_setup_verified_company_channel_account
   COMPOSE_MESSAGE: compose_message_in_group
   NOT_DM_ACCESS: not_access_to_dm
   REPLY_TO_MESSAGE: reply_to_message_on_group
@@ -70,7 +72,9 @@ MESSAGES:
   WHAT_TO_YOU_WANT: "What Do You Want To Do?"
   ALERT_FOR_ANON_MESSAGE: "For anonymous message add the bot to your group and start messaging"
   PLEASE_ENTER_VALID_EMAIL: "Please Enter a Valid Email Address"
+  PLEASE_ENTER_VALID_EMAIL_SUFFIX: "Please Enter a Valid Email Suffix"
   NOT_ALLOWED_PUBLIC_EMAIL: "You Can't Enter a Free Email Service, Please Enter Your Email in Your Company:"
+  NOT_ALLOWED_PUBLIC_EMAIL_SUFFIX: "You Can't Enter a Free Email Service Suffix"
   ENTER_COMPANY_EMAIL: "Please Enter Your Email in Your Company:"
   COMPANY_WITH_THE_EMAIL_NOT_EXIST: "The company according to your email doesn't exist, do you confirm sending a registration request for your company?"
   CONFIRM_REGISTER_TO_CHANNEL: "Do you confirm that you want to register to the "
