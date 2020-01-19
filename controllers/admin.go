@@ -25,6 +25,30 @@ func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot 
 			if err == nil {
 				tableName := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + questioNumber + ".TABLE_NAME")
 				columnName := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + questioNumber + ".COLUMN_NAME")
+				if columnName == config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N2.COLUMN_NAME") {
+					if strings.Contains(strings.TrimSpace(text), ",") {
+						suffixes := strings.Split(strings.TrimSpace(text), ",")
+						for _, suffix := range suffixes {
+							suffixesModel := new(models.CompanyEmailSuffixes)
+							err := db.QueryRow("SELECT id FROM `companies_email_suffixes` where `suffix`=?", suffix).Scan(&suffixesModel.Suffix)
+							if err == nil {
+								botUserModel := new(tb.User)
+								botUserModel.ID = userID
+								bot.Send(botUserModel, suffix+config.LangConfig.GetString("MESSAGES.EMAIL_SUFFIX_EXIST"))
+								return true
+							}
+						}
+					} else {
+						suffixesModel := new(models.CompanyEmailSuffixes)
+						err := db.QueryRow("SELECT id FROM `companies_email_suffixes` where `suffix`=?", strings.TrimSpace(text)).Scan(&suffixesModel.Suffix)
+						if err == nil {
+							botUserModel := new(tb.User)
+							botUserModel.ID = userID
+							bot.Send(botUserModel, strings.TrimSpace(text)+config.LangConfig.GetString("MESSAGES.EMAIL_SUFFIX_EXIST"))
+							return true
+						}
+					}
+				}
 				_, err = db.Query("INSERT INTO `temp_setup_flow` (`tableName`,`columnName`,`data`,`userID`,`relation`,`createdAt`) VALUES ('" + tableName + "','" + columnName + "','" + strings.TrimSpace(text) + "','" + strconv.Itoa(userID) + "','" + config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY") + "_" + strconv.Itoa(userID) + "_" + relationDate + "','" + app.CurrentTime + "')")
 				if err != nil {
 					log.Println(err)
@@ -195,16 +219,7 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 	if strings.Contains(emailSuffixed.Data, ",") {
 		suffixes := strings.Split(emailSuffixed.Data, ",")
 		for _, suffix := range suffixes {
-			suffixesModel := new(models.CompanyEmailSuffixes)
-			err := db.QueryRow("SELECT id FROM `companies_email_suffixes` where `suffix`=?", suffix).Scan(&suffixesModel.Suffix)
-			if err == nil {
-				transaction.Rollback()
-				botUserModel := new(tb.User)
-				botUserModel.ID = userID
-				bot.Send(botUserModel, suffix+config.LangConfig.GetString("MESSAGES.EMAIL_SUFFIX_EXIST"))
-				return
-			}
-			_, err = transaction.Exec("INSERT INTO `companies_email_suffixes` (`suffix`,`companyID`,`createdAt`) VALUES(?,?,?)", suffix , strconv.FormatInt(companyID, 10) , app.CurrentTime)
+			_, err := transaction.Exec("INSERT INTO `companies_email_suffixes` (`suffix`,`companyID`,`createdAt`) VALUES(?,?,?)", suffix, strconv.FormatInt(companyID, 10), app.CurrentTime)
 			if err != nil {
 				transaction.Rollback()
 				log.Println(err)
@@ -212,16 +227,7 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 			}
 		}
 	} else {
-		suffixesModel := new(models.CompanyEmailSuffixes)
-		err := db.QueryRow("SELECT id FROM `companies_email_suffixes` where `suffix`=?", emailSuffixed.Data).Scan(&suffixesModel.Suffix)
-		if err == nil {
-			transaction.Rollback()
-			botUserModel := new(tb.User)
-			botUserModel.ID = userID
-			bot.Send(botUserModel, emailSuffixed.Data+config.LangConfig.GetString("MESSAGES.EMAIL_SUFFIX_EXIST"))
-			return
-		}
-		_, err = transaction.Exec("INSERT INTO `companies_email_suffixes` (`suffix`,`companyID`,`createdAt`) VALUES(?,?,?)", emailSuffixed.Data , strconv.FormatInt(companyID, 10) , app.CurrentTime)
+		_, err := transaction.Exec("INSERT INTO `companies_email_suffixes` (`suffix`,`companyID`,`createdAt`) VALUES(?,?,?)", emailSuffixed.Data, strconv.FormatInt(companyID, 10), app.CurrentTime)
 		if err != nil {
 			_ = transaction.Rollback()
 			log.Println(err)
