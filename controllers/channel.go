@@ -47,8 +47,38 @@ func (service *BotService) SetUpChannelByAdmin(db *sql.DB, app *config.App, bot 
 func (service *BotService) channelNextQuestion(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, lastState *models.UserLastState, relationDate string, prevQuestionNo int, text string, userID int) {
 	questionText := config.QConfig.GetString("SUPERADMIN.CHANNEL.SETUP.QUESTIONS.N" + strconv.Itoa(prevQuestionNo+1) + ".QUESTION")
 	if questionText == config.QConfig.GetString("SUPERADMIN.CHANNEL.SETUP.QUESTIONS.N4.QUESTION") {
-
-		return
+		userModel := new(tb.User)
+		userModel.ID = userID
+		results, err := db.Query("SELECT id,companyName FROM `companies`")
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		defer results.Close()
+		replyKeysNested := []tb.ReplyButton{}
+		for results.Next() {
+			companymodel := new(models.Company)
+			if err := results.Scan(&companymodel.ID, &companymodel.CompanyName); err != nil {
+				log.Println(err)
+				return
+			}
+			replyBTN := tb.ReplyButton{
+				Text: companymodel.CompanyName,
+			}
+			replyKeysNested = append(replyKeysNested, replyBTN)
+		}
+		homeBTN := tb.ReplyButton{
+			Text: config.LangConfig.GetString("GENERAL.HOME"),
+		}
+		replyKeys := [][]tb.ReplyButton{
+			replyKeysNested,
+			[]tb.ReplyButton{homeBTN},
+		}
+		options := new(tb.SendOptions)
+		replyMarkupModel := new(tb.ReplyMarkup)
+		replyMarkupModel.ReplyKeyboard = replyKeys
+		options.ReplyMarkup = replyMarkupModel
+		bot.Send(userModel, questionText, options)
 	} else {
 		answers := config.QConfig.GetString("SUPERADMIN.CHANNEL.SETUP.QUESTIONS.N" + strconv.Itoa(prevQuestionNo+1) + ".ANSWERS")
 		if answers != "" && strings.Contains(strings.TrimSpace(answers), ",") {
