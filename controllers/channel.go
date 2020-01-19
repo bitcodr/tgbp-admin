@@ -49,7 +49,7 @@ func (service *BotService) channelNextQuestion(db *sql.DB, app *config.App, bot 
 	if questionText == config.QConfig.GetString("SUPERADMIN.CHANNEL.SETUP.QUESTIONS.N4.QUESTION") {
 		userModel := new(tb.User)
 		userModel.ID = userID
-		results, err := db.Query("SELECT id,companyName FROM `companies`")
+		results, err := db.Query("SELECT id,companyName FROM `companies` where type !=''")
 		if err != nil {
 			log.Println(err)
 			return
@@ -186,8 +186,8 @@ func (service *BotService) channelFinalStage(app *config.App, bot *tb.Bot, relat
 			log.Println(err)
 			return
 		}
-		service.sendMessageUserWithActionOnKeyboards(db, app, bot, userID, config.LangConfig.GetString("MESSAGES.COMPANY_REGISTERED_SUCCESSFULLY"), false)
-		SaveUserLastState(db, app, bot, text, userID, config.LangConfig.GetString("STATE.DONE_SETUP_VERIFIED_COMPANY"))
+		service.sendMessageUserWithActionOnKeyboards(db, app, bot, userID, config.LangConfig.GetString("MESSAGES.CHANNEL_REGISTERED_SUCCESSFULLY"), false)
+		SaveUserLastState(db, app, bot, text, userID, config.LangConfig.GetString("STATE.DONE_SETUP_VERIFIED_COMPANY_CHANNEL"))
 	}
 }
 
@@ -198,10 +198,10 @@ func (service *BotService) insertChannelFinalStateData(app *config.App, bot *tb.
 		return
 	}
 
-	//insert company
+	//select company id
 	var companyName string
 	for _, v := range companyChannelTableData {
-		if v.ColumnName == config.LangConfig.GetString("GENERAL.COMPANY_NAME") {
+		if v.ColumnName == config.LangConfig.GetString("GENERAL.COMPANY_ID") {
 			companyName = v.Data
 		}
 	}
