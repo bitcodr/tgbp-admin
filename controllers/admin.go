@@ -174,7 +174,7 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 	companyNewModel := new(models.Company)
 	var companyID int64
 	if err := db.QueryRow("SELECT id,companyName,type FROM `companies` where `companyName`=? and `type`=?", companyName, companyTypeField).Scan(&companyNewModel.ID, &companyNewModel.CompanyName, &companyNewModel.Type); err != nil {
-		insertCompany, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`type`,`createdAt`) VALUES(?,?)", companyName, companyTypeField, app.CurrentTime)
+		insertCompany, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`type`,`createdAt`) VALUES(?,?,?)", companyName, companyTypeField, app.CurrentTime)
 		if err != nil {
 			_ = transaction.Rollback()
 			log.Println(err)
@@ -204,7 +204,7 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 				bot.Send(botUserModel, suffix+config.LangConfig.GetString("MESSAGES.EMAIL_SUFFIX_EXIST"))
 				return
 			}
-			_, err = transaction.Exec("INSERT INTO `companies_email_suffixes` (`suffix`,`companyID`,`createdAt`) VALUES('" + suffix + "','" + strconv.FormatInt(companyID, 10) + "','" + app.CurrentTime + "')")
+			_, err = transaction.Exec("INSERT INTO `companies_email_suffixes` (`suffix`,`companyID`,`createdAt`) VALUES(?,?,?)", suffix , strconv.FormatInt(companyID, 10) , app.CurrentTime)
 			if err != nil {
 				transaction.Rollback()
 				log.Println(err)
@@ -221,7 +221,7 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 			bot.Send(botUserModel, emailSuffixed.Data+config.LangConfig.GetString("MESSAGES.EMAIL_SUFFIX_EXIST"))
 			return
 		}
-		_, err = transaction.Exec("INSERT INTO `companies_email_suffixes` (`suffix`,`companyID`,`createdAt`) VALUES('" + emailSuffixed.Data + "','" + strconv.FormatInt(companyID, 10) + "','" + app.CurrentTime + "')")
+		_, err = transaction.Exec("INSERT INTO `companies_email_suffixes` (`suffix`,`companyID`,`createdAt`) VALUES(?,?,?)", emailSuffixed.Data , strconv.FormatInt(companyID, 10) , app.CurrentTime)
 		if err != nil {
 			_ = transaction.Rollback()
 			log.Println(err)
