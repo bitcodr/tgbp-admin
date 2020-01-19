@@ -47,8 +47,8 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		switch {
 		case lastState.State == config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY") || incomingMessage == setupVerifiedCompany.Text:
 			goto SetUpCompanyByAdmin
-		case lastState.State == config.LangConfig.GetString("STATE.CONFIRM_REGISTER_COMPANY"):
-			goto ConfirmRegisterCompanyRequest
+		case lastState.State == config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY_CHANNEL") || incomingMessage == setupVerifiedCompanyChannel.Text:
+			goto SetUpChannelByAdmin
 		default:
 			bot.Send(message.Sender, "Your message "+message.Text+" is not being processed or sent to any individual, channel or group. Please use inline buttons or use the /home command.")
 			goto END
@@ -64,10 +64,11 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		}
 		goto END
 
-	ConfirmRegisterCompanyRequest:
+	SetUpChannelByAdmin:
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
-			UserState:  config.LangConfig.GetString("STATE.CONFIRM_REGISTER_COMPANY"),
-			Controller: "ConfirmRegisterCompanyRequest",
+			UserState:  config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY_CHANNEL"),
+			Command:    setupVerifiedCompany.Text,
+			Controller: "SetUpChannelByAdmin",
 		}) {
 			Init(app, bot, true)
 		}
@@ -80,7 +81,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 func inlineOnTextEventsHandler(app *config.App, bot *tb.Bot, message *tb.Message, db *sql.DB, lastState *models.UserLastState, request *Event) bool {
 	var result bool
 	switch {
-	case request.Controller == "SetUpCompanyByAdmin":
+	case request.Controller == "SetUpCompanyByAdmin" || request.Controller == "SetUpChannelByAdmin":
 		helpers.Invoke(new(BotService), &result, request.Controller, db, app, bot, message, request, lastState, strings.TrimSpace(message.Text), message.Sender.ID)
 	default:
 		helpers.Invoke(new(BotService), &result, request.Controller, db, app, bot, message, request, lastState)

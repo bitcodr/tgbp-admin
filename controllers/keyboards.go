@@ -5,7 +5,7 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-//TODO needs keyboard refactoring
+
 //bot startup buttons
 var setupVerifiedCompany = tb.ReplyButton{
 	Text: "Setup Verified Company Account",
