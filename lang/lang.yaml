@@ -74,7 +74,7 @@ MESSAGES:
   PLEASE_ENTER_VALID_EMAIL: "Please Enter a Valid Email Address"
   PLEASE_ENTER_VALID_EMAIL_SUFFIX: "Please Enter a Valid Email Suffix"
   NOT_ALLOWED_PUBLIC_EMAIL: "You Can't Enter a Free Email Service, Please Enter Your Email in Your Company:"
-  NOT_ALLOWED_PUBLIC_EMAIL_SUFFIX: "You Can't Enter a Free Email Service Suffix"
+  NOT_ALLOWED_PUBLIC_EMAIL_SUFFIX: "You Can't Enter a Free Email Service Suffix Like: "
   ENTER_COMPANY_EMAIL: "Please Enter Your Email in Your Company:"
   COMPANY_WITH_THE_EMAIL_NOT_EXIST: "The company according to your email doesn't exist, do you confirm sending a registration request for your company?"
   CONFIRM_REGISTER_TO_CHANNEL: "Do you confirm that you want to register to the "

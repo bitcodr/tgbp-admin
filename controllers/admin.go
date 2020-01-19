@@ -38,7 +38,7 @@ func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot 
 							}
 							emails := []string{"@yahoo.com", "@hotmail.com", "@outlook.com", "@zoho.com", "@icloud.com", "@mail.com", "@aol.com", "@yandex.com"}
 							if helpers.SortAndSearchInStrings(emails, suffix) {
-								bot.Send(botUserModel, config.LangConfig.GetString("MESSAGES.NOT_ALLOWED_PUBLIC_EMAIL_SUFFIX"))
+								bot.Send(botUserModel, config.LangConfig.GetString("MESSAGES.NOT_ALLOWED_PUBLIC_EMAIL_SUFFIX")+suffix)
 								return true
 							}
 							suffixesModel := new(models.CompanyEmailSuffixes)
@@ -57,7 +57,7 @@ func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot 
 						}
 						emails := []string{"@yahoo.com", "@hotmail.com", "@outlook.com", "@zoho.com", "@icloud.com", "@mail.com", "@aol.com", "@yandex.com"}
 						if helpers.SortAndSearchInStrings(emails, text) {
-							bot.Send(botUserModel, config.LangConfig.GetString("MESSAGES.NOT_ALLOWED_PUBLIC_EMAIL_SUFFIX"))
+							bot.Send(botUserModel, config.LangConfig.GetString("MESSAGES.NOT_ALLOWED_PUBLIC_EMAIL_SUFFIX")+text)
 							return true
 						}
 						suffixesModel := new(models.CompanyEmailSuffixes)
