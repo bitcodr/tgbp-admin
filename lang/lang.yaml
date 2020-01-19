@@ -3,10 +3,10 @@ GENERAL:
   COMPANIES: companies
   CHANNELS: channels
   CHANNELS_SETTINGS: channels_settings
-  CHANNEL_EMAIL_SUFFIXES: channels_email_suffixes
+  COMPANY_EMAIL_SUFFIXES: companies_email_suffixes
   COMPANY_NAME: companyName
   CHANNEL_TYPE: channelType
-  CHANNEL_MODEL: channelModel
+  COMPANY_TYPE: type
   MANUAL_CHANNEL_NAME: manualChannelName
   UNIQUE_ID: uniqueID
   CHANNEL_URL: channelURL
@@ -92,6 +92,7 @@ MESSAGES:
   BACK_TO: "⬅️Back to "
   YOU_DO_NOT_HAVE_PREMISSION_TO_SEND_A_MESSAGE: "You should first confirm your company email for sending a message"
   DM_HISTORY: "DM history: You & "
+  EMAIL_SUFFIX_EXIST: " email suffix exist for a company choose another one"
 
 COMMANDS:
   ENABLE_CHAT: "/enable_anonymity_support"

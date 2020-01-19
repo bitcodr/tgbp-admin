@@ -115,6 +115,257 @@ func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate
 	}
 	defer results.Close()
 	if err == nil {
+		var companyTableData []*models.TempSetupFlow
+		var companiesEmailSuffixes []*models.TempSetupFlow
+		for results.Next() {
+			tempSetupFlow := new(models.TempSetupFlow)
+			err := results.Scan(&tempSetupFlow.ID, &tempSetupFlow.TableName, &tempSetupFlow.ColumnName, &tempSetupFlow.Data, &tempSetupFlow.Relation, &tempSetupFlow.Status, &tempSetupFlow.UserID, &tempSetupFlow.CreatedAt)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			switch tempSetupFlow.TableName {
+			case config.LangConfig.GetString("GENERAL.COMPANIES"):
+				companyTableData = append(companyTableData, tempSetupFlow)
+			case config.LangConfig.GetString("GENERAL.COMPANY_EMAIL_SUFFIXES"):
+				companiesEmailSuffixes = append(companiesEmailSuffixes, tempSetupFlow)
+			}
+		}
+		transaction, err := db.Begin()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		//insert company
+		service.insertFinalStateData(app, bot, userID, transaction, companyTableData, companiesEmailSuffixes, db)
+		//update state of temp setup data
+		_, err = transaction.Exec("update `temp_setup_flow` set `status`='INACTIVE' where status='ACTIVE' and relation=? and `userID`=?", config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY")+"_"+strconv.Itoa(userID)+"_"+relationDate, userID)
+		if err != nil {
+			_ = transaction.Rollback()
+			log.Println(err)
+			return
+		}
+		err = transaction.Commit()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		service.sendMessageUserWithActionOnKeyboards(db, app, bot, userID, config.LangConfig.GetString("MESSAGES.COMPANY_REGISTERED_SUCCESSFULLY"), false)
+		SaveUserLastState(db, app, bot, text, userID, config.LangConfig.GetString("STATE.DONE_SETUP_VERIFIED_COMPANY"))
+	}
+}
+
+func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, userID int, transaction *sql.Tx, companyTableData, companiesEmailSuffixes []*models.TempSetupFlow, db *sql.DB) {
+	if companyTableData == nil || companiesEmailSuffixes == nil || len(companiesEmailSuffixes) != 1 {
+		transaction.Rollback()
+		log.Println(config.LangConfig.GetString("MESSAGES.DATA_MUST_NOT_BE_NULL"))
+		return
+	}
+	//insert company
+	var companyName, companyTypeField string
+	for _, v := range companyTableData {
+		if v.ColumnName == config.LangConfig.GetString("GENERAL.COMPANY_NAME") {
+			companyName = v.Data
+		}
+		if v.ColumnName == config.LangConfig.GetString("GENERAL.COMPANY_TYPE") {
+			companyTypeField = v.Data
+		}
+	}
+	companyNewModel := new(models.Company)
+	var companyID int64
+	if err := db.QueryRow("SELECT id,companyName,type FROM `companies` where `companyName`=? and `type`=?", companyName, companyTypeField).Scan(&companyNewModel.ID, &companyNewModel.CompanyName, &companyNewModel.Type); err != nil {
+		insertCompany, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`type`,`createdAt`) VALUES(?,?)", companyName, companyTypeField, app.CurrentTime)
+		if err != nil {
+			_ = transaction.Rollback()
+			log.Println(err)
+			return
+		}
+		companyID, err = insertCompany.LastInsertId()
+		if err != nil {
+			_ = transaction.Rollback()
+			log.Println(err)
+			return
+		}
+	} else {
+		companyID = companyNewModel.ID
+	}
+
+	//insert channelsEmailSuffixes
+	emailSuffixed := companiesEmailSuffixes[0]
+	if strings.Contains(emailSuffixed.Data, ",") {
+		suffixes := strings.Split(emailSuffixed.Data, ",")
+		for _, suffix := range suffixes {
+			suffixesModel := new(models.CompanyEmailSuffixes)
+			err := db.QueryRow("SELECT id FROM `companies_email_suffixes` where `suffix`=?", suffix).Scan(&suffixesModel.Suffix)
+			if err == nil {
+				transaction.Rollback()
+				botUserModel := new(tb.User)
+				botUserModel.ID = userID
+				bot.Send(botUserModel, suffix+config.LangConfig.GetString("MESSAGES.EMAIL_SUFFIX_EXIST"))
+				return
+			}
+			_, err = transaction.Exec("INSERT INTO `companies_email_suffixes` (`suffix`,`companyID`,`createdAt`) VALUES('" + suffix + "','" + strconv.FormatInt(companyNewModel.ID, 10) + "','" + app.CurrentTime + "')")
+			if err != nil {
+				transaction.Rollback()
+				log.Println(err)
+				return
+			}
+		}
+	} else {
+		suffixesModel := new(models.CompanyEmailSuffixes)
+		err := db.QueryRow("SELECT id FROM `companies_email_suffixes` where `suffix`=?", emailSuffixed.Data).Scan(&suffixesModel.Suffix)
+		if err == nil {
+			transaction.Rollback()
+			botUserModel := new(tb.User)
+			botUserModel.ID = userID
+			bot.Send(botUserModel, emailSuffixed.Data+config.LangConfig.GetString("MESSAGES.EMAIL_SUFFIX_EXIST"))
+			return
+		}
+		_, err = transaction.Exec("INSERT INTO `companies_email_suffixes` (`suffix`,`companyID`,`createdAt`) VALUES('" + emailSuffixed.Data + "','" + strconv.FormatInt(companyNewModel.ID, 10) + "','" + app.CurrentTime + "')")
+		if err != nil {
+			_ = transaction.Rollback()
+			log.Println(err)
+			return
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+func SaveUserLastState(db *sql.DB, app *config.App, bot *tb.Bot, data string, userDataID int, state string) {
+	userID := strconv.Itoa(userDataID)
+	insertedState, err := db.Query("INSERT INTO `users_last_state` (`userID`,`state`,`data`,`createdAt`) VALUES('" + userID + "','" + state + "','" + strings.TrimSpace(data) + "','" + app.CurrentTime + "')")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer insertedState.Close()
+}
+
+func GetUserLastState(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, user int) *models.UserLastState {
+	userLastState := new(models.UserLastState)
+	if err := db.QueryRow("SELECT `data`,`state`,`userID` from `users_last_state` where `userId`=? order by `id` DESC limit 1", user).Scan(&userLastState.Data, &userLastState.State, &userLastState.UserID); err != nil {
+		log.Println(err)
+		userLastState.Status = "INACTIVE"
+		return userLastState
+	}
+	return userLastState
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+func (service *BotService) SetUpChannelByAdmin(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState, text string, userID int) bool {
+	if lastState.Data != "" && lastState.State == request.UserState {
+		questions := config.QConfig.GetStringMap("SUPERADMIN.COMPANY.SETUP.QUESTIONS")
+		numberOfQuestion := strings.Split(lastState.Data, "_")
+		if len(numberOfQuestion) == 2 {
+			questioNumber := numberOfQuestion[0]
+			relationDate := numberOfQuestion[1]
+			prevQuestionNo, err := strconv.Atoi(questioNumber)
+			if err == nil {
+				tableName := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + questioNumber + ".TABLE_NAME")
+				columnName := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + questioNumber + ".COLUMN_NAME")
+				_, err = db.Query("INSERT INTO `temp_setup_flow` (`tableName`,`columnName`,`data`,`userID`,`relation`,`createdAt`) VALUES ('" + tableName + "','" + columnName + "','" + strings.TrimSpace(text) + "','" + strconv.Itoa(userID) + "','" + config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY") + "_" + strconv.Itoa(userID) + "_" + relationDate + "','" + app.CurrentTime + "')")
+				if err != nil {
+					log.Println(err)
+					return true
+				}
+				if prevQuestionNo+1 > len(questions) {
+					service.channelFinalStage(app, bot, relationDate, db, text, userID)
+					return true
+				}
+				service.channelNextQuestion(db, app, bot, m, lastState, relationDate, prevQuestionNo, text, userID)
+			}
+		}
+		return true
+	}
+	initQuestion := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N1.QUESTION")
+	service.channelSendMessageUserWithActionOnKeyboards(db, app, bot, userID, initQuestion, true)
+	SaveUserLastState(db, app, bot, "1_"+strconv.FormatInt(time.Now().Unix(), 10), userID, config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY"))
+	return true
+}
+
+//next question
+func (service *BotService) channelNextQuestion(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, lastState *models.UserLastState, relationDate string, prevQuestionNo int, text string, userID int) {
+	questionText := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + strconv.Itoa(prevQuestionNo+1) + ".QUESTION")
+	answers := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + strconv.Itoa(prevQuestionNo+1) + ".ANSWERS")
+	if answers != "" && strings.Contains(strings.TrimSpace(answers), ",") {
+		splittedAnswers := strings.Split(answers, ",")
+		replyKeysNested := []tb.ReplyButton{}
+		for _, v := range splittedAnswers {
+			replyBTN := tb.ReplyButton{
+				Text: v,
+			}
+			replyKeysNested = append(replyKeysNested, replyBTN)
+		}
+		homeBTN := tb.ReplyButton{
+			Text: config.LangConfig.GetString("GENERAL.HOME"),
+		}
+		replyKeys := [][]tb.ReplyButton{
+			replyKeysNested,
+			[]tb.ReplyButton{homeBTN},
+		}
+		userModel := new(tb.User)
+		userModel.ID = userID
+		options := new(tb.SendOptions)
+		replyMarkupModel := new(tb.ReplyMarkup)
+		replyMarkupModel.ReplyKeyboard = replyKeys
+		options.ReplyMarkup = replyMarkupModel
+		_, _ = bot.Send(userModel, questionText, options)
+	} else {
+		userModel := new(tb.User)
+		userModel.ID = userID
+		homeBTN := tb.ReplyButton{
+			Text: config.LangConfig.GetString("GENERAL.HOME"),
+		}
+		replyKeys := [][]tb.ReplyButton{
+			[]tb.ReplyButton{homeBTN},
+		}
+		options := new(tb.SendOptions)
+		replyMarkupModel := new(tb.ReplyMarkup)
+		replyMarkupModel.ReplyKeyboard = replyKeys
+		options.ReplyMarkup = replyMarkupModel
+		bot.Send(userModel, questionText, options)
+	}
+	SaveUserLastState(db, app, bot, strconv.Itoa(prevQuestionNo+1)+"_"+relationDate, userID, config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY"))
+}
+
+func (service *BotService) channelSendMessageUserWithActionOnKeyboards(db *sql.DB, app *config.App, bot *tb.Bot, userID int, message string, showKeyboard bool) {
+	userModel := new(tb.User)
+	userModel.ID = userID
+	homeBTN := tb.ReplyButton{
+		Text: config.LangConfig.GetString("GENERAL.HOME"),
+	}
+	replyKeys := [][]tb.ReplyButton{
+		[]tb.ReplyButton{homeBTN},
+	}
+	replyModel := new(tb.ReplyMarkup)
+	replyModel.ReplyKeyboardRemove = showKeyboard
+	replyModel.ReplyKeyboard = replyKeys
+	options := new(tb.SendOptions)
+	options.ReplyMarkup = replyModel
+	bot.Send(userModel, message, options)
+}
+
+func (service *BotService) channelFinalStage(app *config.App, bot *tb.Bot, relationDate string, db *sql.DB, text string, userID int) {
+	results, err := db.Query("SELECT id,tableName,columnName,data,relation,status,userID,createdAt from `temp_setup_flow` where status='ACTIVE' and relation=? and userID=?", config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY")+"_"+strconv.Itoa(userID)+"_"+relationDate, userID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer results.Close()
+	if err == nil {
 		var channelTableData []*models.TempSetupFlow
 		var companyTableData []*models.TempSetupFlow
 		var channelsEmailSuffixes []*models.TempSetupFlow
@@ -133,7 +384,7 @@ func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate
 				channelTableData = append(channelTableData, tempSetupFlow)
 			case config.LangConfig.GetString("GENERAL.CHANNELS_SETTINGS"):
 				channelsSettings = append(channelsSettings, tempSetupFlow)
-			case config.LangConfig.GetString("GENERAL.CHANNEL_EMAIL_SUFFIXES"):
+			case config.LangConfig.GetString("GENERAL.COMPANY_EMAIL_SUFFIXES"):
 				channelsEmailSuffixes = append(channelsEmailSuffixes, tempSetupFlow)
 			}
 		}
@@ -143,7 +394,7 @@ func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate
 			return
 		}
 		//insert company
-		service.insertFinalStateData(app, bot, userID, transaction, channelTableData, companyTableData, channelsEmailSuffixes, channelsSettings, db)
+		service.insertChannelFinalStateData(app, bot, userID, transaction, channelTableData, companyTableData, channelsEmailSuffixes, channelsSettings, db)
 		//update state of temp setup data
 		_, err = transaction.Exec("update `temp_setup_flow` set `status`='INACTIVE' where status='ACTIVE' and relation=? and `userID`=?", config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY")+"_"+strconv.Itoa(userID)+"_"+relationDate, userID)
 		if err != nil {
@@ -161,7 +412,7 @@ func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate
 	}
 }
 
-func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, userID int, transaction *sql.Tx, channelTableData, companyTableData, channelsEmailSuffixes, channelsSettings []*models.TempSetupFlow, db *sql.DB) {
+func (service *BotService) insertChannelFinalStateData(app *config.App, bot *tb.Bot, userID int, transaction *sql.Tx, channelTableData, companyTableData, channelsEmailSuffixes, channelsSettings []*models.TempSetupFlow, db *sql.DB) {
 	if companyTableData == nil || channelsEmailSuffixes == nil || len(channelsEmailSuffixes) != 1 || channelTableData == nil || channelsSettings == nil {
 		transaction.Rollback()
 		log.Println(config.LangConfig.GetString("MESSAGES.DATA_MUST_NOT_BE_NULL"))
@@ -251,7 +502,7 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 	if strings.Contains(emailSuffixed.Data, ",") {
 		suffixes := strings.Split(emailSuffixed.Data, ",")
 		for _, suffix := range suffixes {
-			_, err := transaction.Exec("INSERT INTO `channels_email_suffixes` (`suffix`,`channelID`,`createdAt`) VALUES('" + suffix + "','" + strconv.FormatInt(channelModel.ID, 10) + "','" + app.CurrentTime + "')")
+			_, err := transaction.Exec("INSERT INTO `companies_email_suffixes` (`suffix`,`channelID`,`createdAt`) VALUES('" + suffix + "','" + strconv.FormatInt(channelModel.ID, 10) + "','" + app.CurrentTime + "')")
 			if err != nil {
 				transaction.Rollback()
 				log.Println(err)
@@ -259,7 +510,7 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 			}
 		}
 	} else {
-		_, err := transaction.Exec("INSERT INTO `channels_email_suffixes` (`suffix`,`channelID`,`createdAt`) VALUES('" + emailSuffixed.Data + "','" + strconv.FormatInt(channelModel.ID, 10) + "','" + app.CurrentTime + "')")
+		_, err := transaction.Exec("INSERT INTO `companies_email_suffixes` (`suffix`,`channelID`,`createdAt`) VALUES('" + emailSuffixed.Data + "','" + strconv.FormatInt(channelModel.ID, 10) + "','" + app.CurrentTime + "')")
 		if err != nil {
 			_ = transaction.Rollback()
 			log.Println(err)
@@ -309,24 +560,4 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 		log.Println(err)
 		return
 	}
-}
-
-func SaveUserLastState(db *sql.DB, app *config.App, bot *tb.Bot, data string, userDataID int, state string) {
-	userID := strconv.Itoa(userDataID)
-	insertedState, err := db.Query("INSERT INTO `users_last_state` (`userID`,`state`,`data`,`createdAt`) VALUES('" + userID + "','" + state + "','" + strings.TrimSpace(data) + "','" + app.CurrentTime + "')")
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	defer insertedState.Close()
-}
-
-func GetUserLastState(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, user int) *models.UserLastState {
-	userLastState := new(models.UserLastState)
-	if err := db.QueryRow("SELECT `data`,`state`,`userID` from `users_last_state` where `userId`=? order by `id` DESC limit 1", user).Scan(&userLastState.Data, &userLastState.State, &userLastState.UserID); err != nil {
-		log.Println(err)
-		userLastState.Status = "INACTIVE"
-		return userLastState
-	}
-	return userLastState
 }
