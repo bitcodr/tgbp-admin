@@ -204,7 +204,7 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 				bot.Send(botUserModel, suffix+config.LangConfig.GetString("MESSAGES.EMAIL_SUFFIX_EXIST"))
 				return
 			}
-			_, err = transaction.Exec("INSERT INTO `companies_email_suffixes` (`suffix`,`companyID`,`createdAt`) VALUES('" + suffix + "','" + strconv.FormatInt(companyNewModel.ID, 10) + "','" + app.CurrentTime + "')")
+			_, err = transaction.Exec("INSERT INTO `companies_email_suffixes` (`suffix`,`companyID`,`createdAt`) VALUES('" + suffix + "','" + strconv.FormatInt(companyID, 10) + "','" + app.CurrentTime + "')")
 			if err != nil {
 				transaction.Rollback()
 				log.Println(err)
@@ -221,7 +221,7 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 			bot.Send(botUserModel, emailSuffixed.Data+config.LangConfig.GetString("MESSAGES.EMAIL_SUFFIX_EXIST"))
 			return
 		}
-		_, err = transaction.Exec("INSERT INTO `companies_email_suffixes` (`suffix`,`companyID`,`createdAt`) VALUES('" + emailSuffixed.Data + "','" + strconv.FormatInt(companyNewModel.ID, 10) + "','" + app.CurrentTime + "')")
+		_, err = transaction.Exec("INSERT INTO `companies_email_suffixes` (`suffix`,`companyID`,`createdAt`) VALUES('" + emailSuffixed.Data + "','" + strconv.FormatInt(companyID, 10) + "','" + app.CurrentTime + "')")
 		if err != nil {
 			_ = transaction.Rollback()
 			log.Println(err)
