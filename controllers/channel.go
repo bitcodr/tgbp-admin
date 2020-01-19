@@ -14,16 +14,16 @@ import (
 
 func (service *BotService) SetUpChannelByAdmin(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState, text string, userID int) bool {
 	if lastState.Data != "" && lastState.State == request.UserState {
-		questions := config.QConfig.GetStringMap("SUPERADMIN.COMPANY.SETUP.QUESTIONS")
+		questions := config.QConfig.GetStringMap("SUPERADMIN.CHANNEL.SETUP.QUESTIONS")
 		numberOfQuestion := strings.Split(lastState.Data, "_")
 		if len(numberOfQuestion) == 2 {
 			questioNumber := numberOfQuestion[0]
 			relationDate := numberOfQuestion[1]
 			prevQuestionNo, err := strconv.Atoi(questioNumber)
 			if err == nil {
-				tableName := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + questioNumber + ".TABLE_NAME")
-				columnName := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + questioNumber + ".COLUMN_NAME")
-				_, err = db.Query("INSERT INTO `temp_setup_flow` (`tableName`,`columnName`,`data`,`userID`,`relation`,`createdAt`) VALUES ('" + tableName + "','" + columnName + "','" + strings.TrimSpace(text) + "','" + strconv.Itoa(userID) + "','" + config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY") + "_" + strconv.Itoa(userID) + "_" + relationDate + "','" + app.CurrentTime + "')")
+				tableName := config.QConfig.GetString("SUPERADMIN.CHANNEL.SETUP.QUESTIONS.N" + questioNumber + ".TABLE_NAME")
+				columnName := config.QConfig.GetString("SUPERADMIN.CHANNEL.SETUP.QUESTIONS.N" + questioNumber + ".COLUMN_NAME")
+				_, err = db.Query("INSERT INTO `temp_setup_flow` (`tableName`,`columnName`,`data`,`userID`,`relation`,`createdAt`) VALUES ('" + tableName + "','" + columnName + "','" + strings.TrimSpace(text) + "','" + strconv.Itoa(userID) + "','" + config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY_CHANNEL") + "_" + strconv.Itoa(userID) + "_" + relationDate + "','" + app.CurrentTime + "')")
 				if err != nil {
 					log.Println(err)
 					return true
@@ -37,55 +37,60 @@ func (service *BotService) SetUpChannelByAdmin(db *sql.DB, app *config.App, bot 
 		}
 		return true
 	}
-	initQuestion := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N1.QUESTION")
+	initQuestion := config.QConfig.GetString("SUPERADMIN.CHANNEL.SETUP.QUESTIONS.N1.QUESTION")
 	service.channelSendMessageUserWithActionOnKeyboards(db, app, bot, userID, initQuestion, true)
-	SaveUserLastState(db, app, bot, "1_"+strconv.FormatInt(time.Now().Unix(), 10), userID, config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY"))
+	SaveUserLastState(db, app, bot, "1_"+strconv.FormatInt(time.Now().Unix(), 10), userID, config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY_CHANNEL"))
 	return true
 }
 
 //next question
 func (service *BotService) channelNextQuestion(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, lastState *models.UserLastState, relationDate string, prevQuestionNo int, text string, userID int) {
-	questionText := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + strconv.Itoa(prevQuestionNo+1) + ".QUESTION")
-	answers := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + strconv.Itoa(prevQuestionNo+1) + ".ANSWERS")
-	if answers != "" && strings.Contains(strings.TrimSpace(answers), ",") {
-		splittedAnswers := strings.Split(answers, ",")
-		replyKeysNested := []tb.ReplyButton{}
-		for _, v := range splittedAnswers {
-			replyBTN := tb.ReplyButton{
-				Text: v,
-			}
-			replyKeysNested = append(replyKeysNested, replyBTN)
-		}
-		homeBTN := tb.ReplyButton{
-			Text: config.LangConfig.GetString("GENERAL.HOME"),
-		}
-		replyKeys := [][]tb.ReplyButton{
-			replyKeysNested,
-			[]tb.ReplyButton{homeBTN},
-		}
-		userModel := new(tb.User)
-		userModel.ID = userID
-		options := new(tb.SendOptions)
-		replyMarkupModel := new(tb.ReplyMarkup)
-		replyMarkupModel.ReplyKeyboard = replyKeys
-		options.ReplyMarkup = replyMarkupModel
-		_, _ = bot.Send(userModel, questionText, options)
+	questionText := config.QConfig.GetString("SUPERADMIN.CHANNEL.SETUP.QUESTIONS.N" + strconv.Itoa(prevQuestionNo+1) + ".QUESTION")
+	if questionText == config.QConfig.GetString("SUPERADMIN.CHANNEL.SETUP.QUESTIONS.N4.QUESTION") {
+
+		return
 	} else {
-		userModel := new(tb.User)
-		userModel.ID = userID
-		homeBTN := tb.ReplyButton{
-			Text: config.LangConfig.GetString("GENERAL.HOME"),
+		answers := config.QConfig.GetString("SUPERADMIN.CHANNEL.SETUP.QUESTIONS.N" + strconv.Itoa(prevQuestionNo+1) + ".ANSWERS")
+		if answers != "" && strings.Contains(strings.TrimSpace(answers), ",") {
+			splittedAnswers := strings.Split(answers, ",")
+			replyKeysNested := []tb.ReplyButton{}
+			for _, v := range splittedAnswers {
+				replyBTN := tb.ReplyButton{
+					Text: v,
+				}
+				replyKeysNested = append(replyKeysNested, replyBTN)
+			}
+			homeBTN := tb.ReplyButton{
+				Text: config.LangConfig.GetString("GENERAL.HOME"),
+			}
+			replyKeys := [][]tb.ReplyButton{
+				replyKeysNested,
+				[]tb.ReplyButton{homeBTN},
+			}
+			userModel := new(tb.User)
+			userModel.ID = userID
+			options := new(tb.SendOptions)
+			replyMarkupModel := new(tb.ReplyMarkup)
+			replyMarkupModel.ReplyKeyboard = replyKeys
+			options.ReplyMarkup = replyMarkupModel
+			_, _ = bot.Send(userModel, questionText, options)
+		} else {
+			userModel := new(tb.User)
+			userModel.ID = userID
+			homeBTN := tb.ReplyButton{
+				Text: config.LangConfig.GetString("GENERAL.HOME"),
+			}
+			replyKeys := [][]tb.ReplyButton{
+				[]tb.ReplyButton{homeBTN},
+			}
+			options := new(tb.SendOptions)
+			replyMarkupModel := new(tb.ReplyMarkup)
+			replyMarkupModel.ReplyKeyboard = replyKeys
+			options.ReplyMarkup = replyMarkupModel
+			bot.Send(userModel, questionText, options)
 		}
-		replyKeys := [][]tb.ReplyButton{
-			[]tb.ReplyButton{homeBTN},
-		}
-		options := new(tb.SendOptions)
-		replyMarkupModel := new(tb.ReplyMarkup)
-		replyMarkupModel.ReplyKeyboard = replyKeys
-		options.ReplyMarkup = replyMarkupModel
-		bot.Send(userModel, questionText, options)
 	}
-	SaveUserLastState(db, app, bot, strconv.Itoa(prevQuestionNo+1)+"_"+relationDate, userID, config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY"))
+	SaveUserLastState(db, app, bot, strconv.Itoa(prevQuestionNo+1)+"_"+relationDate, userID, config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY_CHANNEL"))
 }
 
 func (service *BotService) channelSendMessageUserWithActionOnKeyboards(db *sql.DB, app *config.App, bot *tb.Bot, userID int, message string, showKeyboard bool) {
@@ -106,7 +111,7 @@ func (service *BotService) channelSendMessageUserWithActionOnKeyboards(db *sql.D
 }
 
 func (service *BotService) channelFinalStage(app *config.App, bot *tb.Bot, relationDate string, db *sql.DB, text string, userID int) {
-	results, err := db.Query("SELECT id,tableName,columnName,data,relation,status,userID,createdAt from `temp_setup_flow` where status='ACTIVE' and relation=? and userID=?", config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY")+"_"+strconv.Itoa(userID)+"_"+relationDate, userID)
+	results, err := db.Query("SELECT id,tableName,columnName,data,relation,status,userID,createdAt from `temp_setup_flow` where status='ACTIVE' and relation=? and userID=?", config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY_CHANNEL")+"_"+strconv.Itoa(userID)+"_"+relationDate, userID)
 	if err != nil {
 		log.Println(err)
 		return
@@ -143,7 +148,7 @@ func (service *BotService) channelFinalStage(app *config.App, bot *tb.Bot, relat
 		//insert company
 		service.insertChannelFinalStateData(app, bot, userID, transaction, channelTableData, companyTableData, channelsEmailSuffixes, channelsSettings, db)
 		//update state of temp setup data
-		_, err = transaction.Exec("update `temp_setup_flow` set `status`='INACTIVE' where status='ACTIVE' and relation=? and `userID`=?", config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY")+"_"+strconv.Itoa(userID)+"_"+relationDate, userID)
+		_, err = transaction.Exec("update `temp_setup_flow` set `status`='INACTIVE' where status='ACTIVE' and relation=? and `userID`=?", config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY_CHANNEL")+"_"+strconv.Itoa(userID)+"_"+relationDate, userID)
 		if err != nil {
 			_ = transaction.Rollback()
 			log.Println(err)
