@@ -318,6 +318,7 @@ func (service *BotService) insertChannelFinalStateData(app *config.App, bot *tb.
 		}
 	}
 
+	//TODO add transactional
 	//remove previous company, which create with channel id
 	_, _ = transaction.Exec("delete from `channels_settings` where `channelID`=?", channelModel.ID)
 
