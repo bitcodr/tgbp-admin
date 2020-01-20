@@ -165,12 +165,12 @@ func (service *BotService) channelFinalStage(app *config.App, bot *tb.Bot, relat
 				companyChannelTableData = append(companyChannelTableData, tempSetupFlow)
 			case config.LangConfig.GetString("GENERAL.CHANNELS"):
 				channelTableData = append(channelTableData, tempSetupFlow)
-				if tempSetupFlow.ColumnName == config.LangConfig.GetString("SUPERADMIN.CHANNEL.SETUP.QUESTIONS.N2.COLUMN_NAME") {
+				if tempSetupFlow.ColumnName == config.QConfig.GetString("SUPERADMIN.CHANNEL.SETUP.QUESTIONS.N2.COLUMN_NAME") {
 					uniqueID = tempSetupFlow.Data
 				}
 			case config.LangConfig.GetString("GENERAL.CHANNELS_SETTINGS"):
 				channelsSettings = append(channelsSettings, tempSetupFlow)
-				if tempSetupFlow.ColumnName == config.LangConfig.GetString("SUPERADMIN.CHANNEL.SETUP.QUESTIONS.N5.COLUMN_NAME") && tempSetupFlow.Data == config.LangConfig.GetString("GENERAL.YES_TEXT") {
+				if tempSetupFlow.ColumnName == config.QConfig.GetString("SUPERADMIN.CHANNEL.SETUP.QUESTIONS.N5.COLUMN_NAME") && tempSetupFlow.Data == config.LangConfig.GetString("GENERAL.YES_TEXT") {
 					isJoinVerify = true
 				}
 			}
@@ -196,7 +196,7 @@ func (service *BotService) channelFinalStage(app *config.App, bot *tb.Bot, relat
 		}
 		var successMessage string
 		if isJoinVerify {
-			successMessage = config.LangConfig.GetString("MESSAGES.CHANNEL_REGISTERED_SUCCESSFULLY") + app.UserBotURL + "?start=join_to_" + uniqueID
+			successMessage = config.LangConfig.GetString("MESSAGES.CHANNEL_REGISTERED_SUCCESSFULLY_WITH_URL") + app.UserBotURL + "?start=join_to_" + uniqueID
 		} else {
 			successMessage = config.LangConfig.GetString("MESSAGES.CHANNEL_REGISTERED_SUCCESSFULLY")
 		}
