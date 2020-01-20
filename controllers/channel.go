@@ -317,7 +317,11 @@ func (service *BotService) insertChannelFinalStateData(app *config.App, bot *tb.
 			}
 		}
 	}
-	_, err = transaction.Exec("INSERT INTO `channels_settings` (`joinVerify`,`newMessageVerify`,`replyVerify`,`directVerify`,`channelID`,`createdAt`) VALUES('" + joinVerify + "','" + newMessageVerify + "','" + replyVerify + "','" + directVerify + "','" + strconv.FormatInt(channelModel.ID, 10) + "','" + app.CurrentTime + "')")
+
+	//remove previous company, which create with channel id
+	_, _ = transaction.Exec("delete from `channels_settings` where `channelID`=?", channelModel.ID)
+
+	_, err = transaction.Exec("INSERT INTO `channels_settings` (`joinVerify`,`newMessageVerify`,`replyVerify`,`directVerify`,`channelID`,`createdAt`) VALUES(?,?,?,?,?,?)", joinVerify, newMessageVerify, replyVerify, directVerify, strconv.FormatInt(channelModel.ID, 10), app.CurrentTime)
 	if err != nil {
 		transaction.Rollback()
 		log.Println(err)
