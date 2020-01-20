@@ -148,6 +148,8 @@ func (service *BotService) channelFinalStage(app *config.App, bot *tb.Bot, relat
 	}
 	defer results.Close()
 	if err == nil {
+		var isJoinVerify *bool
+		var uniqueID *string
 		var channelTableData []*models.TempSetupFlow
 		var companyChannelTableData []*models.TempSetupFlow
 		var channelsSettings []*models.TempSetupFlow
@@ -163,8 +165,18 @@ func (service *BotService) channelFinalStage(app *config.App, bot *tb.Bot, relat
 				companyChannelTableData = append(companyChannelTableData, tempSetupFlow)
 			case config.LangConfig.GetString("GENERAL.CHANNELS"):
 				channelTableData = append(channelTableData, tempSetupFlow)
+				if tempSetupFlow.ColumnName == config.LangConfig.GetString("SUPERADMIN.CHANNEL.SETUP.QUESTIONS.N2.COLUMN_NAME") {
+					*uniqueID = tempSetupFlow.Data
+				} else {
+					*uniqueID = ""
+				}
 			case config.LangConfig.GetString("GENERAL.CHANNELS_SETTINGS"):
 				channelsSettings = append(channelsSettings, tempSetupFlow)
+				if tempSetupFlow.ColumnName == config.LangConfig.GetString("SUPERADMIN.CHANNEL.SETUP.QUESTIONS.N5.COLUMN_NAME") && tempSetupFlow.Data == config.LangConfig.GetString("GENERAL.YES_TEXT") {
+					*isJoinVerify = true
+				} else {
+					*isJoinVerify = false
+				}
 			}
 		}
 		transaction, err := db.Begin()
@@ -186,7 +198,13 @@ func (service *BotService) channelFinalStage(app *config.App, bot *tb.Bot, relat
 			log.Println(err)
 			return
 		}
-		service.sendMessageUserWithActionOnKeyboards(db, app, bot, userID, config.LangConfig.GetString("MESSAGES.CHANNEL_REGISTERED_SUCCESSFULLY"), false)
+		var successMessage string
+		if *isJoinVerify {
+			successMessage = config.LangConfig.GetString("MESSAGES.CHANNEL_REGISTERED_SUCCESSFULLY") + app.UserBotURL + "?start=join_to_" + *uniqueID
+		} else {
+			successMessage = config.LangConfig.GetString("MESSAGES.CHANNEL_REGISTERED_SUCCESSFULLY")
+		}
+		service.channelSendMessageUserWithActionOnKeyboards(db, app, bot, userID, successMessage, false)
 		SaveUserLastState(db, app, bot, text, userID, config.LangConfig.GetString("STATE.DONE_SETUP_VERIFIED_COMPANY_CHANNEL"))
 	}
 }
@@ -309,6 +327,4 @@ func (service *BotService) insertChannelFinalStateData(app *config.App, bot *tb.
 		log.Println(err)
 		return
 	}
-
-	//generate a link with bot url when verify join is required
 }

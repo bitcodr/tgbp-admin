@@ -50,7 +50,7 @@ STATE:
 MESSAGES:
   DATA_MUST_NOT_BE_NULL: "final data must not be null"
   COMPANY_REGISTERED_SUCCESSFULLY: "The company registered successfully"
-  CHANNEL_REGISTERED_SUCCESSFULLY: "You're channel registered successfully"
+  CHANNEL_REGISTERED_SUCCESSFULLY: "You're channel registered successfully and you can share this URL with others: "
   CHANNEL_UNIQUE_ID_MESSAGE: "This is your channel unique ID, you can save it and remove this message:"
   COMPOSE_MESSAGE: "📝 New Anonymous Message 👻"
   PLEASE_REPLY: "Please send your reply to the message: "

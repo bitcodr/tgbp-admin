@@ -14,7 +14,7 @@ type AppInterface interface {
 }
 
 type App struct {
-	ProjectDir, BotToken, BotUsername, DBName, DBUserName, DBPass, CurrentTime, TgDomain, APIURL string
+	ProjectDir, BotToken, BotUsername, DBName, DBUserName, DBPass, CurrentTime, TgDomain, APIURL, UserBotURL string
 }
 
 func (app *App) SetAppConfig() *App {
@@ -26,5 +26,6 @@ func (app *App) SetAppConfig() *App {
 	app.BotUsername = AppConfig.GetString("APP.BOT_USERNAME")
 	app.TgDomain = "https://t.me/"
 	app.APIURL = AppConfig.GetString("APP.API_URL")
+	app.UserBotURL = AppConfig.GetString("APP.USER_BOT_URL")
 	return app
 }
