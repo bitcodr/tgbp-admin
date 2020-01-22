@@ -22,7 +22,7 @@ func (app *App) appConfig() {
 	AppConfig.SetConfigType("yaml")
 	AppConfig.SetConfigName("config")
 	AppConfig.AddConfigPath(app.ProjectDir)
-	AppConfig.AddConfigPath("/var/www/privatechan")
+	AppConfig.AddConfigPath("/var/www/tgbp-admin")
 	err := AppConfig.ReadInConfig()
 	if err != nil {
 		log.Fatalln(err)
@@ -34,7 +34,7 @@ func (app *App) langConfig() {
 	LangConfig.SetConfigType("yaml")
 	LangConfig.SetConfigName("lang")
 	LangConfig.AddConfigPath(app.ProjectDir + "/lang")
-	LangConfig.AddConfigPath("/var/www/privatechan/lang")
+	LangConfig.AddConfigPath("/var/www/tgbp-admin/lang")
 	err := LangConfig.ReadInConfig()
 	if err != nil {
 		log.Fatalln(err)
@@ -46,7 +46,7 @@ func (app *App) questionConfig() {
 	QConfig.SetConfigType("yaml")
 	QConfig.SetConfigName("question")
 	QConfig.AddConfigPath(app.ProjectDir + "/lang")
-	QConfig.AddConfigPath("/var/www/privatechan/lang")
+	QConfig.AddConfigPath("/var/www/tgbp-admin/lang")
 	err := QConfig.ReadInConfig()
 	if err != nil {
 		log.Fatalln(err)
