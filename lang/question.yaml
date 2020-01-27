@@ -15,7 +15,7 @@ SUPERADMIN:
         N3:
           TABLE_NAME: companies
           COLUMN_NAME: type
-          QUESTION: "Select Type Of Channel/Group To Add:"
+          QUESTION: "Select Type Of Company To Add:"
           ANSWERS: "Global,Country,City"
 
   CHANNEL:
@@ -39,7 +39,7 @@ SUPERADMIN:
         N4:
           TABLE_NAME: companies_channels
           COLUMN_NAME: companyID
-          QUESTION: "Select channel company:"
+          QUESTION: "Select Channel/Group company:"
           ANSWERS: ""
         N5:
           TABLE_NAME: channels_settings
