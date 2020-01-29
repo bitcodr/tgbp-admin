@@ -57,7 +57,7 @@ func (service *BotService) channelNextQuestion(db *sql.DB, app *config.App, bot 
 		defer results.Close()
 		var replyKeysNestedEven []tb.ReplyButton
 		var replyKeysNestedOdd []tb.ReplyButton
-		var index *int
+		var index int
 		for results.Next() {
 			companymodel := new(models.Company)
 			if err := results.Scan(&companymodel.ID, &companymodel.CompanyName); err != nil {
@@ -67,12 +67,12 @@ func (service *BotService) channelNextQuestion(db *sql.DB, app *config.App, bot 
 			replyBTN := tb.ReplyButton{
 				Text: companymodel.CompanyName,
 			}
-			if *index%2 == 0 {
+			if index%2 == 0 {
 				replyKeysNestedEven = append(replyKeysNestedEven, replyBTN)
 			} else {
 				replyKeysNestedOdd = append(replyKeysNestedOdd, replyBTN)
 			}
-			*index++
+			index++
 		}
 		homeBTN := tb.ReplyButton{
 			Text: config.LangConfig.GetString("GENERAL.HOME"),
