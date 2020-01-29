@@ -103,6 +103,7 @@ MESSAGES:
   COMPANY_NOT_EXIST: "Selected company not registered"
   COMPANY_WITH_THE_NAME_EXIST_CHOOSE_ANOTHER_ONE: "Company with the enterd name exist choose another name"
   COMPANY_NAME_CANNOT_HAVE_SPACES: "Company name cannot contain any spaces"
+  REGISTER_A_COMPANY_FIRST: "You should register a company first"
 
 COMMANDS:
   ENABLE_CHAT: "/enable_anonymity_support"
