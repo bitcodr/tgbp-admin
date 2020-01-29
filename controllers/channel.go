@@ -148,7 +148,6 @@ func (service *BotService) channelFinalStage(app *config.App, bot *tb.Bot, relat
 	}
 	defer results.Close()
 	if err == nil {
-		var isJoinVerify bool
 		var uniqueID string
 		var channelTableData []*models.TempSetupFlow
 		var companyChannelTableData []*models.TempSetupFlow
@@ -170,9 +169,6 @@ func (service *BotService) channelFinalStage(app *config.App, bot *tb.Bot, relat
 				}
 			case config.LangConfig.GetString("GENERAL.CHANNELS_SETTINGS"):
 				channelsSettings = append(channelsSettings, tempSetupFlow)
-				if tempSetupFlow.ColumnName == config.QConfig.GetString("SUPERADMIN.CHANNEL.SETUP.QUESTIONS.N5.COLUMN_NAME") && tempSetupFlow.Data == config.LangConfig.GetString("GENERAL.YES_TEXT") {
-					isJoinVerify = true
-				}
 			}
 		}
 		transaction, err := db.Begin()
@@ -189,16 +185,18 @@ func (service *BotService) channelFinalStage(app *config.App, bot *tb.Bot, relat
 			log.Println(err)
 			return
 		}
+		channelPublicURL := app.UserBotURL + "?start=join_to_" + uniqueID
+		successMessage := config.LangConfig.GetString("MESSAGES.CHANNEL_REGISTERED_SUCCESSFULLY_WITH_URL") + channelPublicURL
+		_, err = transaction.Exec("update `channels` set `publicURL`=? where uniqueID=?", channelPublicURL, uniqueID)
+		if err != nil {
+			_ = transaction.Rollback()
+			log.Println(err)
+			return
+		}
 		err = transaction.Commit()
 		if err != nil {
 			log.Println(err)
 			return
-		}
-		var successMessage string
-		if isJoinVerify {
-			successMessage = config.LangConfig.GetString("MESSAGES.CHANNEL_REGISTERED_SUCCESSFULLY_WITH_URL") + app.UserBotURL + "?start=join_to_" + uniqueID
-		} else {
-			successMessage = config.LangConfig.GetString("MESSAGES.CHANNEL_REGISTERED_SUCCESSFULLY_WITH_URL") + app.UserBotURL + "?start=join_to_" + uniqueID
 		}
 		service.channelSendMessageUserWithActionOnKeyboards(db, app, bot, userID, successMessage, false)
 		SaveUserLastState(db, app, bot, text, userID, config.LangConfig.GetString("STATE.DONE_SETUP_VERIFIED_COMPANY_CHANNEL"))

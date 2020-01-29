@@ -102,6 +102,7 @@ MESSAGES:
   EMAIL_SUFFIX_EXIST: " email suffix exist for a company choose another one"
   COMPANY_NOT_EXIST: "Selected company not registered"
   COMPANY_WITH_THE_NAME_EXIST_CHOOSE_ANOTHER_ONE: "Company with the enterd name exist choose another name"
+  COMPANY_NAME_CANNOT_HAVE_SPACES: "Company name cannot contain any spaces"
 
 COMMANDS:
   ENABLE_CHAT: "/enable_anonymity_support"

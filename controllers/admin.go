@@ -36,6 +36,10 @@ func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot 
 				columnName := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + questioNumber + ".COLUMN_NAME")
 
 				if columnName == config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N1.COLUMN_NAME") {
+					if strings.Contains(text, " ") {
+						bot.Send(botUserModel, config.LangConfig.GetString("MESSAGES.COMPANY_NAME_CANNOT_HAVE_SPACES"))
+						return true
+					}
 					companyModel := new(models.Company)
 					if err := db.QueryRow("SELECT id FROM `companies` where companyName=?", text).Scan(&companyModel.ID); err == nil {
 						bot.Send(botUserModel, config.LangConfig.GetString("MESSAGES.COMPANY_WITH_THE_NAME_EXIST_CHOOSE_ANOTHER_ONE"))
@@ -188,6 +192,7 @@ func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate
 	if err == nil {
 		var companyTableData []*models.TempSetupFlow
 		var companiesEmailSuffixes []*models.TempSetupFlow
+		var companyName string
 		for results.Next() {
 			tempSetupFlow := new(models.TempSetupFlow)
 			err := results.Scan(&tempSetupFlow.ID, &tempSetupFlow.TableName, &tempSetupFlow.ColumnName, &tempSetupFlow.Data, &tempSetupFlow.Relation, &tempSetupFlow.Status, &tempSetupFlow.UserID, &tempSetupFlow.CreatedAt)
@@ -198,6 +203,9 @@ func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate
 			switch tempSetupFlow.TableName {
 			case config.LangConfig.GetString("GENERAL.COMPANIES"):
 				companyTableData = append(companyTableData, tempSetupFlow)
+				if tempSetupFlow.ColumnName == config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N1.COLUMN_NAME") {
+					companyName = tempSetupFlow.Data
+				}
 			case config.LangConfig.GetString("GENERAL.COMPANY_EMAIL_SUFFIXES"):
 				companiesEmailSuffixes = append(companiesEmailSuffixes, tempSetupFlow)
 			}
@@ -216,17 +224,22 @@ func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate
 			log.Println(err)
 			return
 		}
+		companyPublicURL := app.UserBotURL + "?start=join_to_company_" + companyName
+		successMessage := config.LangConfig.GetString("MESSAGES.COMPANY_REGISTERED_SUCCESSFULLY") + companyPublicURL
+
+		_, err = transaction.Exec("update `companies` set `publicURL`=? where companyName=?", companyPublicURL, companyName)
+		if err != nil {
+			_ = transaction.Rollback()
+			log.Println(err)
+			return
+		}
+
 		err = transaction.Commit()
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		companyModel := new(models.Company)
-		if err := db.QueryRow("SELECT data FROM `temp_setup_flow` where relation=? and userID=? and tableName=? and columnName=?", config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY")+"_"+strconv.Itoa(userID)+"_"+relationDate, userID, config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N1.TABLE_NAME"), config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N1.COLUMN_NAME")).Scan(&companyModel.CompanyName); err != nil {
-			log.Println(err)
-			return
-		}
-		successMessage := config.LangConfig.GetString("MESSAGES.COMPANY_REGISTERED_SUCCESSFULLY") + app.UserBotURL + "?start=join_to_company_" + companyModel.CompanyName
+
 		service.sendMessageUserWithActionOnKeyboards(db, app, bot, userID, successMessage, false)
 		SaveUserLastState(db, app, bot, text, userID, config.LangConfig.GetString("STATE.DONE_SETUP_VERIFIED_COMPANY"))
 	}
