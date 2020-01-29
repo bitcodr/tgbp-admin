@@ -224,7 +224,7 @@ func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate
 			log.Println(err)
 			return
 		}
-		companyPublicURL := app.UserBotURL + "?start=company_join_to_" + companyName
+		companyPublicURL := app.UserBotURL + "?start=join_company_" + companyName
 		successMessage := config.LangConfig.GetString("MESSAGES.COMPANY_REGISTERED_SUCCESSFULLY") + companyPublicURL
 
 		_, err = transaction.Exec("update `companies` set `publicURL`=? where companyName=?", companyPublicURL, companyName)
