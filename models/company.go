@@ -5,6 +5,7 @@ type Company struct {
 	CreatedAt   string     `json:"createdAt"`
 	UpdatedAt   string     `json:"updatedAt"`
 	CompanyName string     `json:"companyName"`
+	PublicURL   string     `json:"publicURL"`
 	Type        string     `json:"type"`
 	Channels    []*Channel `json:"channels"`
 }
