@@ -55,8 +55,8 @@ func (service *BotService) channelNextQuestion(db *sql.DB, app *config.App, bot 
 			return
 		}
 		defer results.Close()
-		var replyKeysNestedEven []tb.ReplyButton
-		var replyKeysNestedOdd []tb.ReplyButton
+		replyKeysNestedEven := []tb.ReplyButton{}
+		replyKeysNestedOdd := []tb.ReplyButton{}
 		var index int
 		for results.Next() {
 			companymodel := new(models.Company)
