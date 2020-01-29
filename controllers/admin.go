@@ -13,25 +13,41 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-//TODO register company with free email suffixes isn't possible
+//TODO add gmail.com
 
 func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState, text string, userID int) bool {
 	if lastState.Data != "" && lastState.State == request.UserState {
+
 		questions := config.QConfig.GetStringMap("SUPERADMIN.COMPANY.SETUP.QUESTIONS")
 		numberOfQuestion := strings.Split(lastState.Data, "_")
+
 		if len(numberOfQuestion) == 2 {
+
 			questioNumber := numberOfQuestion[0]
 			relationDate := numberOfQuestion[1]
 			prevQuestionNo, err := strconv.Atoi(questioNumber)
+
 			if err == nil {
+
+				botUserModel := new(tb.User)
+				botUserModel.ID = userID
+
 				tableName := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + questioNumber + ".TABLE_NAME")
 				columnName := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + questioNumber + ".COLUMN_NAME")
+
+				if columnName == config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N1.COLUMN_NAME") {
+					companyModel := new(models.Company)
+					if err := db.QueryRow("SELECT id FROM `companies` where companyName=?", text).Scan(&companyModel.ID); err == nil {
+						bot.Send(botUserModel, config.LangConfig.GetString("MESSAGES.COMPANY_WITH_THE_NAME_EXIST_CHOOSE_ANOTHER_ONE"))
+						return true
+					}
+				}
+
 				if columnName == config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N2.COLUMN_NAME") {
+
 					if strings.Contains(strings.TrimSpace(text), ",") {
 						suffixes := strings.Split(strings.TrimSpace(text), ",")
 						for _, suffix := range suffixes {
-							botUserModel := new(tb.User)
-							botUserModel.ID = userID
 							if !strings.Contains(text, "@") {
 								bot.Send(botUserModel, config.LangConfig.GetString("MESSAGES.PLEASE_ENTER_VALID_EMAIL_SUFFIX"))
 								return true
@@ -48,7 +64,9 @@ func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot 
 								return true
 							}
 						}
+
 					} else {
+
 						botUserModel := new(tb.User)
 						botUserModel.ID = userID
 						if !strings.Contains(text, "@") {
@@ -68,15 +86,18 @@ func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot 
 						}
 					}
 				}
+
 				_, err = db.Query("INSERT INTO `temp_setup_flow` (`tableName`,`columnName`,`data`,`userID`,`relation`,`createdAt`) VALUES ('" + tableName + "','" + columnName + "','" + strings.TrimSpace(text) + "','" + strconv.Itoa(userID) + "','" + config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY") + "_" + strconv.Itoa(userID) + "_" + relationDate + "','" + app.CurrentTime + "')")
 				if err != nil {
 					log.Println(err)
 					return true
 				}
+
 				if prevQuestionNo+1 > len(questions) {
 					service.finalStage(app, bot, relationDate, db, text, userID)
 					return true
 				}
+
 				service.nextQuestion(db, app, bot, m, lastState, relationDate, prevQuestionNo, text, userID)
 			}
 		}
@@ -90,9 +111,12 @@ func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot 
 
 //next question
 func (service *BotService) nextQuestion(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, lastState *models.UserLastState, relationDate string, prevQuestionNo int, text string, userID int) {
+
 	questionText := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + strconv.Itoa(prevQuestionNo+1) + ".QUESTION")
 	answers := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + strconv.Itoa(prevQuestionNo+1) + ".ANSWERS")
+
 	if answers != "" && strings.Contains(strings.TrimSpace(answers), ",") {
+
 		splittedAnswers := strings.Split(answers, ",")
 		replyKeysNested := []tb.ReplyButton{}
 		for _, v := range splittedAnswers {
@@ -115,7 +139,9 @@ func (service *BotService) nextQuestion(db *sql.DB, app *config.App, bot *tb.Bot
 		replyMarkupModel.ReplyKeyboard = replyKeys
 		options.ReplyMarkup = replyMarkupModel
 		_, _ = bot.Send(userModel, questionText, options)
+
 	} else {
+
 		userModel := new(tb.User)
 		userModel.ID = userID
 		homeBTN := tb.ReplyButton{
@@ -129,7 +155,9 @@ func (service *BotService) nextQuestion(db *sql.DB, app *config.App, bot *tb.Bot
 		replyMarkupModel.ReplyKeyboard = replyKeys
 		options.ReplyMarkup = replyMarkupModel
 		bot.Send(userModel, questionText, options)
+
 	}
+
 	SaveUserLastState(db, app, bot, strconv.Itoa(prevQuestionNo+1)+"_"+relationDate, userID, config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY"))
 }
 
@@ -193,7 +221,13 @@ func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate
 			log.Println(err)
 			return
 		}
-		service.sendMessageUserWithActionOnKeyboards(db, app, bot, userID, config.LangConfig.GetString("MESSAGES.COMPANY_REGISTERED_SUCCESSFULLY"), false)
+		companyModel := new(models.Company)
+		if err := db.QueryRow("SELECT data FROM `temp_setup_flow` where relation=? and userID=? and tableName=? and columnName=?", config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY")+"_"+strconv.Itoa(userID)+"_"+relationDate, userID, config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N1.TABLE_NAME"), config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N1.COLUMN_NAME")).Scan(&companyModel.CompanyName); err != nil {
+			log.Println(err)
+			return
+		}
+		successMessage := config.LangConfig.GetString("MESSAGES.COMPANY_REGISTERED_SUCCESSFULLY") + app.UserBotURL + "?start=join_to_company_" + companyModel.CompanyName
+		service.sendMessageUserWithActionOnKeyboards(db, app, bot, userID, successMessage, false)
 		SaveUserLastState(db, app, bot, text, userID, config.LangConfig.GetString("STATE.DONE_SETUP_VERIFIED_COMPANY"))
 	}
 }

@@ -49,7 +49,7 @@ STATE:
 
 MESSAGES:
   DATA_MUST_NOT_BE_NULL: "final data must not be null"
-  COMPANY_REGISTERED_SUCCESSFULLY: "The company registered successfully"
+  COMPANY_REGISTERED_SUCCESSFULLY: "The company registered successfully and you can share this URL with others:"
   CHANNEL_REGISTERED_SUCCESSFULLY: "You're channel registered successfully"
   CHANNEL_REGISTERED_SUCCESSFULLY_WITH_URL: "You're channel registered successfully and you can share this URL with others: "
   CHANNEL_UNIQUE_ID_MESSAGE: "This is your channel unique ID, you can save it and remove this message:"
@@ -101,7 +101,7 @@ MESSAGES:
   DM_HISTORY: "DM history: You & "
   EMAIL_SUFFIX_EXIST: " email suffix exist for a company choose another one"
   COMPANY_NOT_EXIST: "Selected company not registered"
-
+  COMPANY_WITH_THE_NAME_EXIST_CHOOSE_ANOTHER_ONE: "Company with the enterd name exist choose another name"
 
 COMMANDS:
   ENABLE_CHAT: "/enable_anonymity_support"

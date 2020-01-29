@@ -198,7 +198,7 @@ func (service *BotService) channelFinalStage(app *config.App, bot *tb.Bot, relat
 		if isJoinVerify {
 			successMessage = config.LangConfig.GetString("MESSAGES.CHANNEL_REGISTERED_SUCCESSFULLY_WITH_URL") + app.UserBotURL + "?start=join_to_" + uniqueID
 		} else {
-			successMessage = config.LangConfig.GetString("MESSAGES.CHANNEL_REGISTERED_SUCCESSFULLY")
+			successMessage = config.LangConfig.GetString("MESSAGES.CHANNEL_REGISTERED_SUCCESSFULLY_WITH_URL") + app.UserBotURL + "?start=join_to_" + uniqueID
 		}
 		service.channelSendMessageUserWithActionOnKeyboards(db, app, bot, userID, successMessage, false)
 		SaveUserLastState(db, app, bot, text, userID, config.LangConfig.GetString("STATE.DONE_SETUP_VERIFIED_COMPANY_CHANNEL"))
