@@ -52,7 +52,7 @@ func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot 
 					if strings.Contains(strings.TrimSpace(text), ",") {
 						suffixes := strings.Split(strings.TrimSpace(text), ",")
 						for _, suffix := range suffixes {
-							if !strings.Contains(text, "@") {
+							if !strings.Contains(suffix, "@") {
 								bot.Send(botUserModel, config.LangConfig.GetString("MESSAGES.PLEASE_ENTER_VALID_EMAIL_SUFFIX"))
 								return true
 							}
