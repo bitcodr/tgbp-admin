@@ -13,7 +13,7 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-//TODO add gmail.com
+//TODO add gmail.com and yahoo
 
 func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState, text string, userID int) bool {
 	if lastState.Data != "" && lastState.State == request.UserState {
@@ -56,7 +56,7 @@ func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot 
 								bot.Send(botUserModel, config.LangConfig.GetString("MESSAGES.PLEASE_ENTER_VALID_EMAIL_SUFFIX"))
 								return true
 							}
-							emails := []string{"@yahoo.com", "@hotmail.com", "@outlook.com", "@zoho.com", "@icloud.com", "@mail.com", "@aol.com", "@yandex.com"}
+							emails := []string{"@hotmail.com", "@outlook.com", "@zoho.com", "@icloud.com", "@mail.com", "@aol.com", "@yandex.com"}
 							if helpers.SortAndSearchInStrings(emails, suffix) {
 								bot.Send(botUserModel, config.LangConfig.GetString("MESSAGES.NOT_ALLOWED_PUBLIC_EMAIL_SUFFIX")+suffix)
 								return true
@@ -77,7 +77,7 @@ func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot 
 							bot.Send(botUserModel, config.LangConfig.GetString("MESSAGES.PLEASE_ENTER_VALID_EMAIL_SUFFIX"))
 							return true
 						}
-						emails := []string{"@yahoo.com", "@hotmail.com", "@outlook.com", "@zoho.com", "@icloud.com", "@mail.com", "@aol.com", "@yandex.com"}
+						emails := []string{"@hotmail.com", "@outlook.com", "@zoho.com", "@icloud.com", "@mail.com", "@aol.com", "@yandex.com"}
 						if helpers.SortAndSearchInStrings(emails, text) {
 							bot.Send(botUserModel, config.LangConfig.GetString("MESSAGES.NOT_ALLOWED_PUBLIC_EMAIL_SUFFIX")+text)
 							return true
