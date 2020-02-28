@@ -11,12 +11,7 @@ SUPERADMIN:
           TABLE_NAME: companies_email_suffixes
           COLUMN_NAME: suffix
           QUESTION: "Enter Email Address Suffixes:"
-          ANSWERS: ""
-        N3:
-          TABLE_NAME: companies
-          COLUMN_NAME: type
-          QUESTION: "Select Type Of Company To Add:"
-          ANSWERS: "Global,Country,City"
+          ANSWERS: "" 
 
   CHANNEL:
     SETUP:

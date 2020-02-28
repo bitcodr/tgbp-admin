@@ -252,19 +252,16 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 		return
 	}
 	//insert company
-	var companyName, companyTypeField string
+	var companyName string
 	for _, v := range companyTableData {
 		if v.ColumnName == config.LangConfig.GetString("GENERAL.COMPANY_NAME") {
 			companyName = v.Data
 		}
-		if v.ColumnName == config.LangConfig.GetString("GENERAL.COMPANY_TYPE") {
-			companyTypeField = v.Data
-		}
 	}
 	companyNewModel := new(models.Company)
 	var companyID int64
-	if err := db.QueryRow("SELECT id,companyName,type FROM `companies` where `companyName`=? and `type`=?", companyName, companyTypeField).Scan(&companyNewModel.ID, &companyNewModel.CompanyName, &companyNewModel.Type); err != nil {
-		insertCompany, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`type`,`createdAt`) VALUES(?,?,?)", companyName, companyTypeField, app.CurrentTime)
+	if err := db.QueryRow("SELECT id,companyName FROM `companies` where `companyName`=?", companyName).Scan(&companyNewModel.ID, &companyNewModel.CompanyName); err != nil {
+		insertCompany, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`createdAt`) VALUES(?,?)", companyName, app.CurrentTime)
 		if err != nil {
 			_ = transaction.Rollback()
 			log.Println(err)
