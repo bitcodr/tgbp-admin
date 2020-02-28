@@ -49,7 +49,7 @@ func (service *BotService) channelNextQuestion(db *sql.DB, app *config.App, bot 
 	if questionText == config.QConfig.GetString("SUPERADMIN.CHANNEL.SETUP.QUESTIONS.N4.QUESTION") {
 		userModel := new(tb.User)
 		userModel.ID = userID
-		results, err := db.Query("SELECT id,companyName FROM `companies` where type !=''")
+		results, err := db.Query("SELECT id,companyName FROM `companies` where publicURL !=''")
 		if err != nil {
 			log.Println(err)
 			return
