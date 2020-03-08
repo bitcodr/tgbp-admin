@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/amiraliio/tgbp-admin/helpers"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -56,6 +57,11 @@ func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot 
 								bot.Send(botUserModel, config.LangConfig.GetString("MESSAGES.PLEASE_ENTER_VALID_EMAIL_SUFFIX"))
 								return true
 							}
+							matched, _ := regexp.MatchString(`^([a-zA-Z0-9_\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$`, text)
+							if !matched {
+								bot.Send(botUserModel, config.LangConfig.GetString("MESSAGES.PLEASE_ENTER_VALID_EMAIL"))
+								return true
+							}
 							emails := []string{"@outlook.com", "@zoho.com", "@icloud.com", "@mail.com", "@aol.com", "@yandex.com"}
 							if helpers.SortAndSearchInStrings(emails, suffix) {
 								bot.Send(botUserModel, config.LangConfig.GetString("MESSAGES.NOT_ALLOWED_PUBLIC_EMAIL_SUFFIX")+suffix)
@@ -75,6 +81,11 @@ func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot 
 						botUserModel.ID = userID
 						if !strings.Contains(text, "@") {
 							bot.Send(botUserModel, config.LangConfig.GetString("MESSAGES.PLEASE_ENTER_VALID_EMAIL_SUFFIX"))
+							return true
+						}
+						matched, _ := regexp.MatchString(`^([a-zA-Z0-9_\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$`, text)
+						if !matched {
+							bot.Send(botUserModel, config.LangConfig.GetString("MESSAGES.PLEASE_ENTER_VALID_EMAIL"))
 							return true
 						}
 						emails := []string{"@outlook.com", "@zoho.com", "@icloud.com", "@mail.com", "@aol.com", "@yandex.com"}
