@@ -77,7 +77,7 @@ func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot 
 							bot.Send(botUserModel, config.LangConfig.GetString("MESSAGES.PLEASE_ENTER_VALID_EMAIL_SUFFIX"))
 							return true
 						}
-						emails := []string{"@hotmail.com", "@outlook.com", "@zoho.com", "@icloud.com", "@mail.com", "@aol.com", "@yandex.com"}
+						emails := []string{"@outlook.com", "@zoho.com", "@icloud.com", "@mail.com", "@aol.com", "@yandex.com"}
 						if helpers.SortAndSearchInStrings(emails, text) {
 							bot.Send(botUserModel, config.LangConfig.GetString("MESSAGES.NOT_ALLOWED_PUBLIC_EMAIL_SUFFIX")+text)
 							return true
